@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: healthlock-remit-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: INTERSWITCH_CLIENT_ID
+        sync: false          # set manually in Render dashboard
+      - key: INTERSWITCH_CLIENT_SECRET
+        sync: false
+      - key: INTERSWITCH_MERCHANT_CODE
+        sync: false
+      - key: INTERSWITCH_PAY_ITEM_ID
+        sync: false
+      - key: INTERSWITCH_BASE_URL
+        value: https://sandbox.interswitchng.com
+      - key: FRONTEND_URL
+        sync: false          # e.g. https://healthlock.netlify.app

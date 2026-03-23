@@ -1,0 +1,82 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #0a0f1e;
+  --ink-soft: #3d4a6b;
+  --ink-muted: #8492b4;
+  --surface: #f5f7ff;
+  --surface-card: #ffffff;
+  --teal: #00bfa5;
+  --teal-dark: #009688;
+  --teal-glow: rgba(0, 191, 165, 0.18);
+  --blue: #1a3a6b;
+  --blue-mid: #2d5be3;
+  --blue-light: #e8eeff;
+  --red: #e53935;
+  --red-light: #fff0ef;
+  --gold: #f59e0b;
+  --gold-light: #fffbeb;
+  --border: #dde3f5;
+  --shadow-sm: 0 1px 3px rgba(10,15,30,0.08);
+  --shadow-md: 0 4px 16px rgba(10,15,30,0.10);
+  --shadow-lg: 0 12px 40px rgba(10,15,30,0.14);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font-display: "DM Serif Display", Georgia, serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--surface);
+  color: var(--ink);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── Focus ── */
+:focus-visible { outline: 2px solid var(--blue-mid); outline-offset: 2px; }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: .6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes checkPop {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.2) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.animate-fadeUp  { animation: fadeUp  0.4s ease both; }
+.animate-fadeIn  { animation: fadeIn  0.3s ease both; }
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
