@@ -50,7 +50,7 @@ healthlock-remit/
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/healthlock-remit.git
+git clone https://github.com/GausMx/healthlock-remit.git
 cd healthlock-remit
 npm run install:all
 ```
