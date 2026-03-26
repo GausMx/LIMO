@@ -5,7 +5,10 @@ export function useFormValidation(rules) {
 
   const validate = useCallback((values) => {
     const next = {};
-    for (const [field, checks] of Object.entries(rules)) {
+    // Only validate fields that are explicitly passed in values
+    for (const field of Object.keys(values)) {
+      const checks = rules[field];
+      if (!checks) continue;
       for (const { test, message } of checks) {
         if (!test(values[field], values)) {
           next[field] = message;
@@ -13,7 +16,7 @@ export function useFormValidation(rules) {
         }
       }
     }
-    setErrors(next);
+    setErrors(prev => ({ ...prev, ...next }));
     return Object.keys(next).length === 0;
   }, [rules]);
 
@@ -24,7 +27,6 @@ export function useFormValidation(rules) {
   return { errors, validate, clearField, setErrors };
 }
 
-// Pre-built rules
 export const RULES = {
   patientName: [
     { test: v => v && v.trim().length >= 2, message: "Enter patient's full name (min 2 chars)." },
