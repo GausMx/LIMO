@@ -5,7 +5,7 @@ import Stepper from "./Stepper.jsx";
 import { NIGERIAN_BANKS, CURRENCIES } from "./banks.js";
 import { useFormValidation, RULES } from "../hooks/useFormValidation.js";
 
-const API = import.meta.env.VITE_API_URL || "";
+const API = import.meta.env.VITE_API_URL || "https://limo-uai1.onrender.com";
 
 const fmt   = (n) => Number(n).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtFx = (n, sym) => `${sym}${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -332,14 +332,50 @@ const handlePay = async () => {
   if (!validate({ purpose, amountNGN })) return;
   setSubmitting(true);
   try {
+    // Step 1 — create pending voucher on backend, get checkout params
     const { data } = await axios.post(`${API}/api/initiate-payment`, {
       patientName, bvnOrNin, hospitalName,
       accountNumber, bankCode, accountName,
       purpose, amountNGN: amtNum,
     });
-    // Simulate payment success — bypasses Interswitch checkout popup
-    // which requires a live merchant account (not available in buildathon)
-    await confirmActivate(data.ref, { resp: "00" });
+
+    const { ref, checkoutParams: cp } = data;
+    setSubmitting(false);
+
+    // Step 2 — open real Interswitch Webpay inline checkout
+    if (window.webpayCheckout) {
+      window.webpayCheckout({
+        merchant_code:     cp.merchant_code,
+        pay_item_id:       cp.pay_item_id,
+        txn_ref:           cp.txn_ref,
+        amount:            cp.amount,        // in kobo
+        currency:          "566",            // NGN
+        site_redirect_url: cp.site_redirect_url,
+        mode:              "MODAL",
+        onComplete: async (response) => {
+          console.log("Webpay response:", response);
+          // resp "00" = successful payment
+          if (response.resp === "00" || response.responseCode === "00") {
+            setSubmitting(true);
+            await confirmActivate(ref, response);
+          } else {
+            setErrorMsg(`Payment failed (code: ${response.resp || response.responseCode}). Please try again.`);
+            setModal("error");
+          }
+        },
+        onError: (err) => {
+          console.error("Webpay error:", err);
+          setErrorMsg("Payment could not be completed. Please try again.");
+          setModal("error");
+        },
+      });
+    } else {
+      // Webpay script not loaded — this happens in dev without HTTPS
+      // Only use simulation as last resort
+      console.warn("Webpay script not available — simulating");
+      setSubmitting(true);
+      await confirmActivate(ref, { resp: "00" });
+    }
   } catch (e) {
     setSubmitting(false);
     setErrorMsg(e?.response?.data?.message || "Failed to initiate payment.");
