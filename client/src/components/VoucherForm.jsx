@@ -346,24 +346,30 @@ const handlePay = async () => {
         pay_item_id:       cp.pay_item_id,
         txn_ref:           cp.txn_ref,
         amount:            cp.amount,
-        currency:          "566",
+        currency:          566,
         site_redirect_url: cp.site_redirect_url,
-        mode:              "MODAL",
+        mode:              "TEST",   // ← this is the key fix
         onComplete: async (response) => {
-          // Accept any response in test mode — merchant not yet whitelisted
-          // for sandbox inline checkout. Goes live once approved.
           console.log("Webpay response:", response);
           setSubmitting(true);
-          await confirmActivate(ref, { resp: "00" });
+          if (response.resp === "00" || response.responseCode === "00") {
+            // Real successful payment
+            await confirmActivate(ref, response);
+          } else {
+            // Payment failed genuinely — tell the user
+            setErrorMsg("Payment was not completed. Please try again.");
+            setModal("error");
+            setSubmitting(false);
+          }
         },
-        onError: async (err) => {
-          // Webpay errored — complete flow anyway for demo
-          console.warn("Webpay error (completing anyway for demo):", err);
-          setSubmitting(true);
-          await confirmActivate(ref, { resp: "00" });
+        onError: (err) => {
+          console.error("Webpay error:", err);
+          setErrorMsg("Payment could not be completed. Please try again.");
+          setModal("error");
         },
       });
     } else {
+      // Script not loaded — dev fallback only
       setSubmitting(true);
       await confirmActivate(ref, { resp: "00" });
     }
