@@ -288,161 +288,52 @@ export default function VoucherForm() {
     if (acctStatus !== "verified") { alert("Please verify the hospital bank account before continuing."); return; }
     setStep(2); window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
 const verifyBvn = async () => {
   if (!/^\d{11}$/.test(bvnOrNin)) return;
+
   setBvnStatus("loading");
 
   try {
-    // Step 1 — get token directly from browser (bypasses server IP restriction)
-    const clientId     = import.meta.env.VITE_IS_CLIENT_ID;
-    const clientSecret = import.meta.env.VITE_IS_CLIENT_SECRET;
+    const { data } = await axios.post(`${API}/api/verify-bvn`, {
+      bvnOrNin,
+    });
 
-    if (clientId && clientSecret) {
-      const credentials = btoa(`${clientId}:${clientSecret}`);
-      const tokenRes = await fetch(
-        "https://sandbox.interswitchng.com/passport/oauth/token",
-        {
-          method:  "POST",
-          headers: {
-            Authorization:  `Basic ${credentials}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: "grant_type=client_credentials",
-        }
-      );
-      const tokenData = await tokenRes.json();
-      const token = tokenData.access_token;
-
-      if (token) {
-        // Step 2 — call BVN API directly from browser
-        const bvnRes = await fetch(
-          "https://sandbox.interswitchng.com/api/v1/identity/bvn",
-          {
-            method:  "POST",
-            headers: {
-              Authorization:  `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ bvn: bvnOrNin }),
-          }
-        );
-        const bvnData = await bvnRes.json();
-        console.log("BVN response:", bvnData);
-
-        const verified =
-          bvnData?.isMatch      === true ||
-          bvnData?.valid        === true ||
-          bvnData?.responseCode === "00" ||
-          bvnData?.status       === "success" ||
-          bvnData?.bvnExists    === true;
-
-        setBvnStatus(verified ? "verified" : "error");
-        setBvnMsg(verified ? "Identity verified successfully." : "BVN/NIN not found or invalid.");
-        return;
-      }
+    if (data.success) {
+      setBvnStatus("verified");
+      setBvnMsg(data.message);
+    } else {
+      setBvnStatus("error");
+      setBvnMsg(data.message);
     }
-    throw new Error("No credentials");
   } catch (err) {
-    console.warn("BVN direct call failed, using simulation:", err.message);
-    // Fallback simulation — never block the user
-    await new Promise(r => setTimeout(r, 800));
-    setBvnStatus("verified");
-    setBvnMsg("Identity verified (sandbox simulation).");
+    console.error("BVN ERROR:", err);
+    setBvnStatus("error");
+    setBvnMsg("Verification failed.");
   }
 };
 
 const verifyAccount = async () => {
   if (accountNumber.length !== 10) return;
+
   setAcctStatus("loading");
 
   try {
-    const clientId     = import.meta.env.VITE_IS_CLIENT_ID;
-    const clientSecret = import.meta.env.VITE_IS_CLIENT_SECRET;
+    const { data } = await axios.post(`${API}/api/verify-name`, {
+      accountNumber,
+      bankCode,
+    });
 
-    if (clientId && clientSecret) {
-      // Get token directly from browser
-      const credentials = btoa(`${clientId}:${clientSecret}`);
-      const tokenRes = await fetch(
-        "https://sandbox.interswitchng.com/passport/oauth/token",
-        {
-          method:  "POST",
-          headers: {
-            Authorization:  `Basic ${credentials}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: "grant_type=client_credentials",
-        }
-      );
-      const tokenData = await tokenRes.json();
-      const token = tokenData.access_token;
-
-      if (token) {
-        // Call account verification directly from browser
-        const acctRes = await fetch(
-          "https://sandbox.interswitchng.com/api/v1/identity/bank-account",
-          {
-            method:  "POST",
-            headers: {
-              Authorization:  `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ accountNumber, bankCode }),
-          }
-        );
-        const acctData = await acctRes.json();
-        console.log("Account verify response:", acctData);
-
-        const name =
-          acctData?.accountName   ||
-          acctData?.account_name  ||
-          acctData?.AccountName   ||
-          acctData?.data?.accountName;
-
-        if (name) {
-          setAccountName(name);
-          setAcctStatus("verified");
-          return;
-        }
-        // Response came back but no name — try quickteller fallback
-        const qtRes = await fetch(
-          `https://sandbox.interswitchng.com/api/v2/quickteller/paymentcode/accountenquiry?accountIdentifier=${bankCode}|${accountNumber}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const qtData = await qtRes.json();
-        console.log("Quickteller account response:", qtData);
-        const qtName =
-          qtData?.accountName ||
-          qtData?.AccountName ||
-          qtData?.data?.accountName;
-
-        if (qtName) {
-          setAccountName(qtName);
-          setAcctStatus("verified");
-          return;
-        }
-        throw new Error("No account name in response");
-      }
+    if (data.success) {
+      setAccountName(data.accountName);
+      setAcctStatus("verified");
+    } else {
+      setAcctStatus("error");
     }
-    throw new Error("No credentials");
   } catch (err) {
-    console.warn("Account verify failed, using simulation:", err.message);
-    // Deterministic fallback — same account always returns same name
-    await new Promise(r => setTimeout(r, 900));
-    const POOL = [
-      "Adebayo Chukwuemeka",  "Fatima Bello Ibrahim",
-      "Ngozi Adeyemi Osei",   "Emeka Okonkwo Nwachukwu",
-      "Halima Abubakar Musa", "Seun Adesanya Williams",
-      "Chidinma Okafor Eze",  "Oluwaseun Adeyinka Balogun",
-    ];
-    const idx = parseInt(accountNumber.slice(-2), 10) % POOL.length;
-    setAccountName(POOL[idx]);
-    setAcctStatus("verified");
+    console.error("ACCOUNT ERROR:", err);
+    setAcctStatus("error");
   }
 };
-
 const handlePay = async () => {
   if (!validate({ purpose, amountNGN })) return;
   setSubmitting(true);
