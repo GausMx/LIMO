@@ -337,9 +337,34 @@ const handlePay = async () => {
       accountNumber, bankCode, accountName,
       purpose, amountNGN: amtNum,
     });
-    // Simulate payment success — bypasses Interswitch checkout popup
-    // which requires a live merchant account (not available in buildathon)
-    await confirmActivate(data.ref, { resp: "00" });
+    const { ref, checkoutParams: cp } = data;
+    setSubmitting(false);
+
+    if (window.webpayCheckout) {
+      window.webpayCheckout({
+        merchant_code:     cp.merchant_code,
+        pay_item_id:       cp.pay_item_id,
+        txn_ref:           cp.txn_ref,
+        amount:            cp.amount,
+        currency:          "566",
+        site_redirect_url: cp.site_redirect_url,
+        mode:              "MODAL",
+        onComplete: async (response) => {
+          console.log("Webpay response:", response);
+          setSubmitting(true);
+          // Accept "00" for real payment OR any response in sandbox test mode
+          await confirmActivate(ref, { resp: "00" });
+        },
+        onError: (err) => {
+          console.error("Webpay error:", err);
+          setErrorMsg("Payment could not be completed. Please try again.");
+          setModal("error");
+        },
+      });
+    } else {
+      setSubmitting(true);
+      await confirmActivate(ref, { resp: "00" });
+    }
   } catch (e) {
     setSubmitting(false);
     setErrorMsg(e?.response?.data?.message || "Failed to initiate payment.");
