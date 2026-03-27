@@ -4,7 +4,6 @@ import Modal from "./Modal.jsx";
 import Stepper from "./Stepper.jsx";
 import { NIGERIAN_BANKS, CURRENCIES } from "./banks.js";
 import { useFormValidation, RULES } from "../hooks/useFormValidation.js";
-const [processingRef, setProcessingRef] = useState(null);
 
 const API = import.meta.env.VITE_API_URL || "https://limo-uai1.onrender.com";
 
@@ -108,6 +107,8 @@ function SuccessModal({ open, onClose, data }) {
   const [copied, setCopied] = useState(false);
   const link = data?.redeemLink || `${window.location.origin}/redeem/${data?.ref}`;
   const copy = () => navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2200); });
+  const [processingRef, setProcessingRef] = useState(null);
+
 
   return (
     <Modal open={open} onClose={onClose}>
